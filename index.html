@@ -106,9 +106,25 @@ tbody tr:hover{background:#FAF9F5;}
 .btn.secondary:hover{background:#F1EFE7;}
 .savemsg{font-size:13px;color:var(--done);font-weight:600;}
 
-.teamgrid{display:flex;flex-direction:column;gap:10px;max-width:520px;}
-.teamrow{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-s);padding:10px 14px;}
+.teamgrid{display:flex;flex-direction:column;gap:10px;max-width:620px;}
+.teamrow{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-s);padding:10px 14px;gap:16px;}
 .teamrow select{font-family:inherit;font-size:12px;padding:4px 8px;border-radius:var(--radius-s);border:1px solid var(--line);}
+.teamrow .controls{display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.teamrow .checklabel{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft);white-space:nowrap;}
+
+/* ===== Planning page ===== */
+.plan-add{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-m);padding:20px 22px;max-width:700px;margin-bottom:24px;}
+.plan-tree{display:flex;flex-direction:column;gap:10px;max-width:820px;}
+.plan-item{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-m);padding:14px 16px;}
+.plan-item .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.plan-item .title{font-weight:600;font-size:14.5px;}
+.plan-item .meta{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+.plan-item .desc{font-size:13px;color:var(--ink-soft);margin-top:6px;max-width:500px;}
+.plan-item .actions{display:flex;gap:10px;flex-shrink:0;}
+.plan-item .actions button{all:unset;cursor:pointer;font-size:12px;font-weight:600;color:var(--signal);}
+.plan-item .actions button.del{color:var(--blocked);}
+.plan-subs{margin:12px 0 0 20px;padding-left:16px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:10px;}
+.plan-empty{color:var(--ink-soft);font-size:14px;padding:30px 0;}
 
 .overlay{position:fixed;inset:0;background:rgba(28,35,33,0.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
 .overlay.open{display:flex;}
@@ -133,8 +149,8 @@ tbody tr:hover{background:#FAF9F5;}
 
 <!-- ============== CONFIG — fill these in from your Supabase project settings ============== -->
 <script>
-  const SUPABASE_URL = 'https://fzjuuflapeiwfckiivfj.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6anV1ZmxhcGVpd2Zja2lpdmZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyNTA4ODQsImV4cCI6MjEwMzgyNjg4NH0.2Gjto8mk4ZMk6U0fB7YsXpVTTLEkSFwQTnGGJMXnlbE';
+  const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 </script>
 <!-- ========================================================================================== -->
 
@@ -173,6 +189,7 @@ tbody tr:hover{background:#FAF9F5;}
       <button data-view="dashboard" class="active">Dashboard</button>
       <button data-view="log">Log a task</button>
       <button data-view="team">Team</button>
+      <button data-view="planning" id="planningNavBtn" style="display:none;">Planning</button>
     </div>
     <div class="rail-foot">
       Signed in as <span id="railName" style="color:#EFEDE6;"></span><br>
@@ -307,8 +324,45 @@ tbody tr:hover{background:#FAF9F5;}
       <div class="teamgrid" id="teamGrid"></div>
       <p style="color:var(--ink-soft);font-size:13px;max-width:520px;">
         New members join by creating their own account on the sign-in screen — there's no invite step needed.
-        The first person to ever sign up is made an admin automatically; admins can promote others below.
+        The first person to ever sign up is made an admin automatically. Admins can promote others to admin,
+        or just hand out Planning access without making someone a full admin.
       </p>
+    </div>
+
+    <div id="view-planning" style="display:none;">
+      <div class="plan-add">
+        <div class="frow" style="grid-template-columns:2fr 1fr;">
+          <div class="fgroup">
+            <label for="p_title">Title</label>
+            <input type="text" id="p_title" placeholder="e.g. Q3 billing revamp">
+          </div>
+          <div class="fgroup">
+            <label for="p_parent">Main task (leave blank to create a new main task)</label>
+            <select id="p_parent"><option value="">— This is a main task —</option></select>
+          </div>
+        </div>
+        <div class="frow">
+          <div class="fgroup">
+            <label for="p_target">Target date (optional)</label>
+            <input type="date" id="p_target">
+          </div>
+          <div class="fgroup">
+            <label for="p_status">Status</label>
+            <select id="p_status"><option>Planned</option><option>In Progress</option><option>Done</option></select>
+          </div>
+        </div>
+        <div class="frow">
+          <div class="fgroup full">
+            <label for="p_desc">Notes (optional)</label>
+            <textarea id="p_desc" placeholder="Anything worth capturing about this piece of work"></textarea>
+          </div>
+        </div>
+        <div class="submitrow">
+          <button class="btn" id="p_addBtn">Add to plan</button>
+          <span class="savemsg" id="planSaveMsg" style="display:none;">Added ✓</span>
+        </div>
+      </div>
+      <div class="plan-tree" id="planTree"></div>
     </div>
   </div>
 </div>
@@ -435,6 +489,9 @@ async function enterApp(){
   document.getElementById('f_due').value = in3.toISOString().slice(0,10);
 
   await loadTasks();
+  document.getElementById('planningNavBtn').style.display = canManagePlanning() ? 'flex' : 'none';
+  await loadPlanning();
+  populatePlanParentSelect();
   switchView('dashboard');
 
   supa.channel('tasks-changes')
@@ -446,8 +503,11 @@ async function enterApp(){
 }
 
 async function loadProfiles(){
-  const { data, error } = await supa.from('profiles').select('id, full_name, role').order('full_name');
+  const { data, error } = await supa.from('profiles').select('id, full_name, role, can_manage_planning').order('full_name');
   if(!error) profiles = data;
+}
+function canManagePlanning(){
+  return myProfile.role === 'admin' || myProfile.can_manage_planning === true;
 }
 async function loadTasks(){
   const { data, error } = await supa.from('tasks').select('*').order('assigned_date', { ascending: false });
@@ -558,7 +618,13 @@ function renderTeam(){
            <option value="admin" ${p.role==='admin'?'selected':''}>admin</option>
          </select>`
       : `<span class="mono" style="font-size:11px;color:var(--ink-soft);">${p.role}</span>`;
-    return `<div class="teamrow"><span>${escapeHtml(p.full_name)} <span class="mono" style="color:var(--ink-soft);font-size:12px;">· ${count} task${count===1?'':'s'}</span></span>${roleControl}</div>`;
+    const planningControl = myProfile.role === 'admin' && p.role !== 'admin'
+      ? `<label class="checklabel"><input type="checkbox" data-planid="${p.id}" ${p.can_manage_planning ? 'checked' : ''}> Planning access</label>`
+      : '';
+    return `<div class="teamrow">
+      <span>${escapeHtml(p.full_name)} <span class="mono" style="color:var(--ink-soft);font-size:12px;">· ${count} task${count===1?'':'s'}</span></span>
+      <div class="controls">${planningControl}${roleControl}</div>
+    </div>`;
   }).join('');
   grid.querySelectorAll('[data-roleid]').forEach(sel=>{
     sel.addEventListener('change', async ()=>{
@@ -567,7 +633,101 @@ function renderTeam(){
       if(!error){ await loadProfiles(); renderTeam(); }
     });
   });
+  grid.querySelectorAll('[data-planid]').forEach(cb=>{
+    cb.addEventListener('change', async ()=>{
+      const id = cb.getAttribute('data-planid');
+      const { error } = await supa.from('profiles').update({ can_manage_planning: cb.checked }).eq('id', id);
+      if(!error){ await loadProfiles(); renderTeam(); }
+    });
+  });
 }
+
+/* ---------- Planning ---------- */
+let planItems = [];
+async function loadPlanning(){
+  const { data, error } = await supa.from('planned_items').select('*').order('created_at', { ascending: true });
+  if(!error) planItems = data;
+}
+function populatePlanParentSelect(){
+  const sel = document.getElementById('p_parent');
+  const mains = planItems.filter(i => !i.parent_id);
+  sel.innerHTML = '<option value="">— This is a main task —</option>' +
+    mains.map(m => `<option value="${m.id}">${escapeHtml(m.title)}</option>`).join('');
+}
+function renderPlanning(){
+  const tree = document.getElementById('planTree');
+  const mains = planItems.filter(i => !i.parent_id);
+  if(mains.length === 0){
+    tree.innerHTML = '<div class="plan-empty">Nothing planned yet — add a main task above.</div>';
+    return;
+  }
+  tree.innerHTML = mains.map(item => renderPlanItem(item, false)).join('');
+  tree.querySelectorAll('[data-planitem]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.getAttribute('data-planitem');
+      const status = btn.getAttribute('data-status');
+      const { error } = await supa.from('planned_items').update({ status }).eq('id', id);
+      if(!error){ await loadPlanning(); renderPlanning(); }
+    });
+  });
+  tree.querySelectorAll('[data-delitem]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('Delete this item? Subtasks under it will be deleted too.')) return;
+      const id = btn.getAttribute('data-delitem');
+      await supa.from('planned_items').delete().eq('id', id);
+      await loadPlanning();
+      populatePlanParentSelect();
+      renderPlanning();
+    });
+  });
+}
+function renderPlanItem(item, isSub){
+  const subs = planItems.filter(i => i.parent_id === item.id);
+  const nextStatus = item.status === 'Done' ? 'Planned' : (item.status === 'Planned' ? 'In Progress' : 'Done');
+  return `
+    <div class="plan-item">
+      <div class="row">
+        <div>
+          <div class="title">${escapeHtml(item.title)}</div>
+          <div class="meta">
+            <span class="pill status-${item.status.replace(' ','\\ ')}">${item.status}</span>
+            ${item.target_date ? ` · target ${fmtDate(item.target_date)}` : ''}
+          </div>
+          ${item.description ? `<div class="desc">${escapeHtml(item.description)}</div>` : ''}
+        </div>
+        <div class="actions">
+          <button data-planitem="${item.id}" data-status="${nextStatus}">Mark ${nextStatus}</button>
+          <button class="del" data-delitem="${item.id}">Delete</button>
+        </div>
+      </div>
+      ${subs.length > 0 ? `<div class="plan-subs">${subs.map(s => renderPlanItem(s, true)).join('')}</div>` : ''}
+    </div>`;
+}
+
+document.getElementById('p_addBtn').addEventListener('click', async ()=>{
+  const title = document.getElementById('p_title').value.trim();
+  if(!title) return;
+  const newItem = {
+    title,
+    parent_id: document.getElementById('p_parent').value || null,
+    target_date: document.getElementById('p_target').value || null,
+    status: document.getElementById('p_status').value,
+    description: document.getElementById('p_desc').value.trim(),
+    created_by: session.user.id
+  };
+  const { error } = await supa.from('planned_items').insert(newItem);
+  if(error){ alert('Could not save: ' + error.message); return; }
+  document.getElementById('p_title').value = '';
+  document.getElementById('p_desc').value = '';
+  document.getElementById('p_target').value = '';
+  document.getElementById('p_status').value = 'Planned';
+  await loadPlanning();
+  populatePlanParentSelect();
+  renderPlanning();
+  const msg = document.getElementById('planSaveMsg');
+  msg.style.display = 'inline';
+  setTimeout(()=> msg.style.display = 'none', 2000);
+});
 
 function openEdit(id){
   const t = tasks.find(x=>x.id===id);
@@ -584,18 +744,20 @@ function closeEdit(){ document.getElementById('editOverlay').classList.remove('o
 
 function switchView(view){
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
-  ['dashboard','log','team'].forEach(v=>{
+  ['dashboard','log','team','planning'].forEach(v=>{
     document.getElementById('view-'+v).style.display = v===view ? 'block' : 'none';
   });
   const titles = {
     dashboard: ['Dashboard', "Everything the team has logged, at a glance."],
     log: ['Log a task', "Add today's work, or something starting soon."],
-    team: ['Team', 'Everyone with access, and who can manage roles.']
+    team: ['Team', 'Everyone with access, and who can manage roles.'],
+    planning: ['Planning', 'Upcoming work — main tasks and their subtasks.']
   };
   document.getElementById('pageTitle').textContent = titles[view][0];
   document.getElementById('pageSub').textContent = titles[view][1];
   if(view==='dashboard') renderDashboard();
   if(view==='team') renderTeam();
+  if(view==='planning') renderPlanning();
 }
 
 document.querySelectorAll('.nav button').forEach(b=>{
