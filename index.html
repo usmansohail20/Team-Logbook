@@ -149,8 +149,8 @@ tbody tr:hover{background:#FAF9F5;}
 
 <!-- ============== CONFIG — fill these in from your Supabase project settings ============== -->
 <script>
-  const SUPABASE_URL = "https://fzjuuflapeiwfckiivfj.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6anV1ZmxhcGVpd2Zja2lpdmZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyNTA4ODQsImV4cCI6MjEwMzgyNjg4NH0.2Gjto8mk4ZMk6U0fB7YsXpVTTLEkSFwQTnGGJMXnlbE";
+  const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 </script>
 <!-- ========================================================================================== -->
 
@@ -400,6 +400,7 @@ const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let session = null;
 let myProfile = null;
+let appInitialized = false;
 let profiles = [];   // {id, full_name, role}
 let tasks = [];       // joined with member_name
 let sortKey = 'assigned_date';
@@ -464,8 +465,12 @@ document.getElementById('signOutBtn').addEventListener('click', async ()=>{
 supa.auth.onAuthStateChange(async (event, s)=>{
   session = s;
   if(session){
-    await enterApp();
+    if(!appInitialized){
+      appInitialized = true;
+      await enterApp();
+    }
   } else {
+    appInitialized = false;
     document.getElementById('authScreen').style.display = 'flex';
     document.getElementById('shell').classList.remove('open');
   }
