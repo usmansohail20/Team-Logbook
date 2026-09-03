@@ -144,6 +144,8 @@ tbody tr:hover{background:#FAF9F5;}
 .modal{background:var(--panel);border-radius:var(--radius-m);padding:26px 28px;width:100%;max-width:520px;max-height:86vh;overflow:auto;}
 .modal h3{margin:0 0 4px 0;font-size:18px;}
 .modal .sub{color:var(--ink-soft);font-size:13px;margin-bottom:18px;}
+.lockbanner{background:var(--done-soft);color:var(--done);font-size:13px;padding:9px 12px;border-radius:var(--radius-s);margin-bottom:16px;font-weight:600;}
+.fgroup input:disabled,.fgroup select:disabled,.fgroup textarea:disabled{background:#EFEDE6;color:var(--ink-soft);cursor:not-allowed;}
 .loading{padding:60px;text-align:center;color:var(--ink-soft);font-size:14px;}
 .datehist{font-size:12.5px;color:var(--ink-soft);border-top:1px solid var(--line);padding-top:10px;}
 .datehist .htitle{font-weight:600;color:var(--ink);margin-bottom:6px;}
@@ -166,8 +168,8 @@ tbody tr:hover{background:#FAF9F5;}
 
 <!-- ============== CONFIG — fill these in from your Supabase project settings ============== -->
 <script>
-  const SUPABASE_URL = "https://fzjuuflapeiwfckiivfj.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6anV1ZmxhcGVpd2Zja2lpdmZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyNTA4ODQsImV4cCI6MjEwMzgyNjg4NH0.2Gjto8mk4ZMk6U0fB7YsXpVTTLEkSFwQTnGGJMXnlbE";
+  const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 </script>
 <!-- ========================================================================================== -->
 
@@ -424,6 +426,7 @@ tbody tr:hover{background:#FAF9F5;}
   <div class="modal">
     <h3 id="editTitle">Update task</h3>
     <div class="sub" id="editSub"></div>
+    <div class="lockbanner" id="lockBanner" style="display:none;">This task is marked Done and is locked. Ask an admin to reopen it if it needs changes.</div>
     <div class="fgroup" style="margin-bottom:14px;">
       <label>Status</label>
       <select id="e_status">
@@ -757,6 +760,7 @@ function renderTable(){
   body.innerHTML = list.map(t=>{
     const overdue = t.status !== 'Done' && t.expected_end_date && t.expected_end_date < today;
     const canEdit = t.created_by === session.user.id || t.member_id === session.user.id || myProfile.role === 'admin';
+    const locked = t.status === 'Done' && myProfile.role !== 'admin';
     return `
     <tr>
       <td>${escapeHtml(t.member_name)}</td>
@@ -771,7 +775,7 @@ function renderTable(){
       <td><span class="pill status-${t.status.replace(' ','\\ ')}">${t.status}</span></td>
       <td><span class="pill pri-${t.priority}">${t.priority}</span></td>
       <td>${t.jira ? `<span class="jira">${escapeHtml(t.jira)}</span>` : '—'}</td>
-      <td>${canEdit ? `<button class="rowbtn" data-editid="${t.id}">Update</button>` : ''}</td>
+      <td>${canEdit ? `<button class="rowbtn" data-editid="${t.id}">${locked ? 'View' : 'Update'}</button>` : ''}</td>
     </tr>`;
   }).join('');
   body.querySelectorAll('[data-editid]').forEach(btn=>{
@@ -909,8 +913,11 @@ function openEdit(id){
   if(!t) return;
   editingId = id;
   editingOriginalDate = t.expected_end_date;
+  const locked = t.status === 'Done' && myProfile.role !== 'admin';
+
   document.getElementById('editTitle').textContent = t.title;
   document.getElementById('editSub').textContent = `${t.member_name} · ${t.type}${t.jira ? ' · ' + t.jira : ''}`;
+  document.getElementById('lockBanner').style.display = locked ? 'block' : 'none';
   document.getElementById('e_status').value = t.status;
   document.getElementById('e_desc').value = t.description || '';
   document.getElementById('e_jira').value = t.jira || '';
@@ -924,6 +931,13 @@ function openEdit(id){
   document.getElementById('e_hoursdate').value = todayISO();
   document.getElementById('e_hoursnote').value = '';
   document.getElementById('e_timeentries').innerHTML = '';
+
+  ['e_status','e_desc','e_jira','e_duedate','e_reason','e_blocker','e_notes','e_hours','e_hoursdate','e_hoursnote']
+    .forEach(id => document.getElementById(id).disabled = locked);
+  document.getElementById('addTimeEntryBtn').style.display = locked ? 'none' : 'block';
+  document.getElementById('saveEditBtn').style.display = locked ? 'none' : 'block';
+  document.getElementById('deleteTaskBtn').style.display = locked ? 'none' : 'block';
+
   document.getElementById('editOverlay').classList.add('open');
   loadDateHistory(id);
   loadTaskTimeEntries(id);
